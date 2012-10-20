@@ -4,7 +4,8 @@ var gentle_config = {
 		'plugins/find_in_sequence.js' ,
 		'plugins/prepend_append_sequence.js' ,
 		'plugins/export_as_file.js' ,
-		'plugins/dna.js'
+		'plugins/dna.js' ,
+		'plugins/calculators.js'
 	] ,
 	
 	deactivated_plugins : [
