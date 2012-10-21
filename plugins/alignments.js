@@ -381,9 +381,9 @@ PluginAlignments.prototype.recalcAlignments = function () {
             seqObject.s2 = this.lines[a].s;
 
             if (this.alg == this.alg_nw)
-                this.needlemanWunsch( o );
+                this.needlemanWunsch( seqObject );
             else if (this.alg == this.alg_sw)
-                this.smithWaterman( o );
+                this.smithWaterman( seqObject );
 
             if (this.lines[0].s == seqObject.s1) continue; // No gaps were introduced into first sequence
 
