@@ -19,8 +19,8 @@ function AlignLine() {
 }
 
 AlignLine.prototype.resetSequence = function () {
-    if (this.v.length > 0) this.s = this.v.seq;
-    else this.s = "";
+    //if (this.v.length > 0) this.s = this.v.seq;
+    //else this.s = "";
 };
 
 AlignLine.prototype.showFeatures = function () {
@@ -111,7 +111,7 @@ PluginAlignments.prototype.runAlignment = function () {
 
     var sc = gentle.main_sequence_canvas
 
-
+    this.lines = [];
 
     var sequence1 = sc.sequence.seq;
     var sequence2 = $("#alignment_dialog_query").val();
@@ -185,18 +185,32 @@ PluginAlignments.prototype.matrixAlignment = function ( seqObject, local) {
 
     // Initializing backlink matrix
 
-    var back = []; // array of arrays
+    //var back = []; // array of arrays
     var blank_b = [];
 
     while (blank_b.length < N + 1) blank_b.push(0);
-    while (back.length < M + 1) back.pushArray(blank_b);
+    //while (back.length < M + 1) back.pushArray(blank_b);
 
-    var matrix0 = []; // JQ: these are pointers in Alignment.cpp
-    var matrix1 = [];
-    var matrix2 = [];
+    // back should be M x N
+    // set and allocate back
+    // create array
+    var back = new Array(M+1);
+    for (var i = 0; i < back.length; i++) {
+        back[i] = new Array(N+1);
+    }
+
+    for (var i = 0; i < M+1; i++) {
+        for (var j = 0; j < N+1; j++ ){
+            back[i][j] = 0;
+        }
+    }
+
+    var matrix0 = new Array(N+1); // JQ: these are pointers in Alignment.cpp
+    var matrix1 = new Array(N+1);
+    var matrix2;
 
     // Initializing pseudo-matrix (simulated by two altering lines)
-    for (a = 0 ; a < N + 1 ; a++) matrix1[a] = 0;
+    for (a = 0 ; a < N+1 ; a++) matrix1[a] = 0;
 
     // Filling
     var i, j;
@@ -208,10 +222,10 @@ PluginAlignments.prototype.matrixAlignment = function ( seqObject, local) {
     var mi = M, mj = N;
 
     for (i = 0; i < M; i++) {
+        matrix2 = matrix0;
         matrix0 = matrix1;
-        matrix2 = matrix0;       
         matrix1 = matrix2;
-
+        matrix1[0] = 0;
         for (j = 0; j < N; j++) {
             var x = i + 1;
             var y = j + 1;
@@ -233,8 +247,8 @@ PluginAlignments.prototype.matrixAlignment = function ( seqObject, local) {
                     max = r;
                     mi = x;
                     mj = y;
-                    vi.length = 0; // Question
-                    vj.length = 0;
+                    vi = []; // Question
+                    vj = [];
                 }
                 vi.push(x);
                 vj.push(y);
@@ -262,7 +276,7 @@ PluginAlignments.prototype.matrixAlignment = function ( seqObject, local) {
 
     if (local) {
         for (a = b = 0 ; a < vi.length ; a++) {
-            me.matrixBacktrack( back, seqObject, vi[a], vj[a] );
+            this.matrixBacktrack( back, seqObject, vi[a], vj[a] );
             //back = seqObject.back;
             if (seqObject.t1.length > b) {
                 b = seqObject.t1.length;
@@ -276,7 +290,7 @@ PluginAlignments.prototype.matrixAlignment = function ( seqObject, local) {
         mj = N;
     }
 
-    me.matrixBacktrack( back, seqObject, mi, mj);
+    this.matrixBacktrack( back, seqObject, mi, mj);
     //back = seqObject.back;
     var k1 = "";
     var k2 = "";
@@ -405,6 +419,9 @@ PluginAlignments.prototype.recalcAlignments = function () {
                     }
                 }
             }
+
+            this.s1_aligned = seqObject.s1;
+            this.s2_aligned = seqObject.s2;
         }
 
         this.generateConsensusSequence(true);
@@ -468,7 +485,7 @@ PluginAlignments.prototype.moveUpDown = function (what, where) {
         this.lines[what + a] = dummy;
         what += a;
     }
-    me.redoAlignments(false);
+    this.redoAlignments(false);
 };
 
 PluginAlignments.prototype.isDNA = function () {
@@ -491,5 +508,5 @@ PluginAlignments.prototype.isDNA = function () {
 };
 
 PluginAlignments.prototype.isAA = function () {
-    return !me.isDNA();
+    return !this.isDNA();
 };
