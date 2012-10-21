@@ -104,7 +104,7 @@ function PluginAlignments () {
         this.result_id = this.dialog_id + "_result";
         this.lines = [];
 
-        this.alg = this.alg_cw;
+        this.alg = this.alg_nw;
 }
 
 PluginAlignments.prototype.runAlignment = function () {
@@ -151,7 +151,7 @@ PluginAlignments.prototype.runAlignment = function () {
     }
 
     sc.show();
-}
+};
 
 
 // Register plugin
@@ -168,17 +168,17 @@ if ( plugins.registerPlugin ( { className : 'PluginAlignments' , url : 'plugins/
   @param {bool} is_dna If DNA sequence, true, otherwise false.
   @return {object} Object member array "results" contains up to the first 5000 results. Object member "toomany" indicates there may be more.
 */
-PluginAlignments.prototype.needlemanWunsch = function (s1, s2) {
-    return this.matrixAlignment(s1, s2, false);
+PluginAlignments.prototype.needlemanWunsch = function ( seqObject ) {
+    return this.matrixAlignment( seqObject, false );
 };
 
-PluginAlignments.prototype.smithWaterman = function (s1, s2) {
-    return this.matrixAlignment(s1, s2, true);
+PluginAlignments.prototype.smithWaterman = function ( seqObject ) {
+    return this.matrixAlignment( seqObject, true);
 };
 
-PluginAlignments.prototype.matrixAlignment = function (_s1, _s2, local) {
-    var s1 = _s1;
-    var s2 = _s2;
+PluginAlignments.prototype.matrixAlignment = function ( seqObject, local) {
+    var s1 = seqObject.s1; // local copies
+    var s2 = seqObject.s2;
     var a, b;
     var M = s1.length;
     var N = s2.length;
@@ -191,7 +191,7 @@ PluginAlignments.prototype.matrixAlignment = function (_s1, _s2, local) {
     while (blank_b.length < N + 1) blank_b.push(0);
     while (back.length < M + 1) back.pushArray(blank_b);
 
-    var matrix0 = [];
+    var matrix0 = []; // JQ: these are pointers in Alignment.cpp
     var matrix1 = [];
     var matrix2 = [];
 
@@ -208,8 +208,8 @@ PluginAlignments.prototype.matrixAlignment = function (_s1, _s2, local) {
     var mi = M, mj = N;
 
     for (i = 0; i < M; i++) {
-        matrix2 = matrix0;
         matrix0 = matrix1;
+        matrix2 = matrix0;       
         matrix1 = matrix2;
 
         for (j = 0; j < N; j++) {
@@ -253,12 +253,19 @@ PluginAlignments.prototype.matrixAlignment = function (_s1, _s2, local) {
     var o = {};
     o.t1 = "";
     o.t2 = "";
+    o.s1 = "";
+    o.s2 = "";
+
+    seqObject.t1 = "";
+    seqObject.t2 = "";
+    seqObject.back = back;
 
     if (local) {
         for (a = b = 0 ; a < vi.length ; a++) {
-            me.matrixBacktrack(back, s1, s2, o, vi[a], vj[a]);
-            if (o.t1.length > b) {
-                b = o.t1.length;
+            me.matrixBacktrack( back, seqObject, vi[a], vj[a] );
+            //back = seqObject.back;
+            if (seqObject.t1.length > b) {
+                b = seqObject.t1.length;
                 mi = vi[a];
                 mj = vj[a];
             }
@@ -269,60 +276,61 @@ PluginAlignments.prototype.matrixAlignment = function (_s1, _s2, local) {
         mj = N;
     }
 
-    me.matrixBacktrack(back, s1, s2, o, mi, mj);
-    var k1, k2;
+    me.matrixBacktrack( back, seqObject, mi, mj);
+    //back = seqObject.back;
+    var k1 = "";
+    var k2 = "";
 
-    var gap0 = gap.charAt(0);
-    for (a = b = 0; a < o.t1.length; a++)
-        if (o.t1.charAt(a) != gap0) b++;
+    var gap0 = this.gap.charAt(0);
+    for (a = b = 0; a < seqObject.t1.length; a++)
+        if (seqObject.t1.charAt(a) != gap0) b++;
 
     k1 = s1.substr(0, mi - b); // Question check end
 
-    for (a = b = 0 ; a < o.t2.length; a++)
-        if (o.t2.charAt(a) != gap0) b++;
+    for (a = b = 0 ; a < seqObject.t2.length; a++)
+        if (seqObject.t2.charAt(a) != gap0) b++;
 
     k2 = s2.substr(0, mj - b); // Question check end
 
     while (k1.length < k2.length) k1 = "-" + k1;
     while (k2.length < k1.length) k2 = "-" + k2;
-    t1 = k1 + o.t1;
-    t2 = k2 + o.t2;
+    seqObject.t1 = k1 + seqObject.t1;
+    seqObject.t2 = k2 + seqObject.t2;
 
     // The end
     k1 = s1.substr(mi);
     k2 = s2.substr(mj);
     while (k1.length < k2.length) k1 += "-";
     while (k2.length < k1.length) k2 += "-";
-    o.t1 += k1;
-    o.t2 += k2;
+    seqObject.t1 += k1;
+    seqObject.t2 += k2;
 
-    _s1 = t1;
-    _s2 = t2;
+    seqObject.s1 = seqObject.t1;
+    seqObject.s2 = seqObject.t2;
     return max;
 
 };
 
 PluginAlignments.prototype.matrixBacktrack = function (back,
-                                                      s1, s2,
-                                                      o,
+                                                      seqObject,
                                                       i, j) {
-    o.t1 = "";
-    o.t2 = "";
+    seqObject.t1 = "";
+    seqObject.t2 = "";
     while (i > 0 || j > 0) {
         if ((back[i][j] & this.back_lu) == this.back_lu) // upper left
         {
-            o.t1 = s1.charAt(--i) + o.t1;
-            o.t2 = s2.charAt(--j) + o.t2;
+            seqObject.t1 = seqObject.s1.charAt(--i) + seqObject.t1;
+            seqObject.t2 = seqObject.s2.charAt(--j) + seqObject.t2;
         }
         else if ((back[i][j] & this.back_left) > 0) // left
         {
-            o.t1 = s1.charAt(--i) + o.t1;
-            o.t2 = this.gap + o.t2;
+            seqObject.t1 = seqObject.s1.charAt(--i) + seqObject.t1;
+            seqObject.t2 = this.gap + seqObject.t2;
         }
         else if ((back[i][j] & this.back_up) > 0) // up
         {
-            o.t1 = this.gap + o.t1;
-            o.t2 = s2.charAt(--j) + o.t2;
+            seqObject.t1 = this.gap + seqObject.t1;
+            seqObject.t2 = seqObject.s2.charAt(--j) + seqObject.t2;
         }
         else break;
     }
@@ -361,30 +369,36 @@ PluginAlignments.prototype.recalcAlignments = function () {
     else {
         //myass ( this.lines.length > 0 , "Alignment::recalcAlignments:internal1" ) ;
         //
+        var seqObject = {};        
+
         for (a = 0 ; a < this.lines.length ; a++) this.lines[a].resetSequence();
 
         for (a = 1 ; a < this.lines.length ; a++) {
-            var s0 = this.lines[0].s;
+            var s0 = this.lines[0].s;        
+            
+            // sequence object - pass by reference, s1 and s2 get modified
+            seqObject.s1 = s0;
+            seqObject.s2 = this.lines[a].s;
 
             if (this.alg == this.alg_nw)
-                this.needlemanWunsch(s0, this.lines[a].s);
+                this.needlemanWunsch( o );
             else if (this.alg == this.alg_sw)
-                this.smithWaterman(s0, this.lines[a].s);
+                this.smithWaterman( o );
 
-            if (this.lines[0].s == s0) continue; // No gaps were introduced into first sequence
+            if (this.lines[0].s == seqObject.s1) continue; // No gaps were introduced into first sequence
 
             var b;
             for (b = 0 ; b <= a ; b++) // All lines get the same length
             {
-                while (this.lines[b].s.length < s0.length)
+                while (this.lines[b].s.length < seqObject.s1.length)
                     this.lines[b].s += " ";
             }
-            for (b = 0 ; b < s0.length ; b++) // Insert gaps
+            for (b = 0 ; b < seqObject.s1.length ; b++) // Insert gaps
             {
-                if (this.lines[0].s.charAt(b) != s0.charAt(b)) // New gap
+                if (this.lines[0].s.charAt(b) != seqObject.s1.charAt(b)) // New gap
                 {
                     for (var c = 0 ; c < a ; c++) {
-                        for (var d = s0.length - 1 ; d > b && d >= 0 ; d--)
+                        for (var d = seqObject.s1.length - 1 ; d > b && d >= 0 ; d--)
                             this.lines[c].s.replaceAt(d, this.lines[c].s.charAt(d - 1));
                         //myass ( this.lines[c].s.length() > b , "Alignment::recalcAlignments:internal2" ) ;
                         this.lines[c].s.replaceAt(b, "-");
@@ -450,18 +464,18 @@ PluginAlignments.prototype.moveUpDown = function (what, where) {
         var a = 1;
         if (what > where) a = -1;
         var dummy = this.lines[what];
-        lines[what] = lines[what + a];
-        lines[what + a] = dummy;
+        this.lines[what] = this.lines[what + a];
+        this.lines[what + a] = dummy;
         what += a;
     }
     me.redoAlignments(false);
 };
 
 PluginAlignments.prototype.isDNA = function () {
-    var s;
+    var s = "";
     var a, b = 0;
-    for (a = 0 ; a < lines.length ; a++) {
-        if (!lines[a].isIdentity) s += lines[a].s;
+    for (a = 0 ; a < this.lines.length ; a++) {
+        if (!this.lines[a].isIdentity) s += this.lines[a].s;
     }
 
     for (a = 0 ; a < s.length ; a++) {
@@ -472,7 +486,7 @@ PluginAlignments.prototype.isDNA = function () {
     }
 
     // Guess : if more than 1/4 of the sequence are not ACTGN, it's an amino acid sequence
-    if (b >= s.length / 4) return false;
+    if (b >= this.s.length / 4) return false;
     return true;
 };
 
