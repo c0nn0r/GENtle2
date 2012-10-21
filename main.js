@@ -398,8 +398,33 @@ var gentle = {
 		$('#newSequenceDialog').modal();
 		$('#new_sequence_entry').focus() ;
 	  });
-	} ,
-	
+	},
+
+	createNewSequenceForAlignment: function (sequence) {
+	    var text = sequence;
+
+	    if (text == '') {
+	        alert("In Soviet Russia, empty text parses YOU!");
+	        return;
+	    }
+
+	    // Determine file type
+	    var found = false;
+	    $.each(gentle.fileTypeList, function (k, v) {
+	        var file = new window['FT_' + v]();
+	        if (file.checkText(text)) { // End filetype search
+	            found = true;
+	            return false;
+	        }
+	    });
+
+	    //if (found) {
+	    //    $("#newSequenceDialog").modal("hide").remove();
+	    //} else {
+	    //    alert("File type not recognised");
+	    //}
+	},
+
 	createNewSequenceFromDialog : function () {
 		var text = $("#new_sequence_entry").val() ;
 		
@@ -411,7 +436,7 @@ var gentle = {
 		// Determine file type
 		var found = false ;
 		$.each ( gentle.fileTypeList , function ( k , v ) {
-			var file = new window['FT_'+v]();
+		    var file = new window['FT_' + v]();
 			if ( file.checkText ( text ) ) { // End filetype search
 				found = true ;
 				return false ;
