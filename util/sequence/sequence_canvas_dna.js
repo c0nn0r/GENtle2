@@ -590,6 +590,9 @@ SequenceCanvasDNA.prototype.getSettings = function () {
 	// Per-line parameters
 	settings.lines = [] ;
 	$.each ( me.lines , function ( k , v ) {
+	    if (typeof v === "undefined") {
+	        var x = 0;
+	    }
 		settings.lines[k] = v.getSettings() ;
 	} ) ;
 	
